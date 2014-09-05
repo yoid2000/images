@@ -41,10 +41,10 @@ Projects from sourceforge are not signed, and so the auditor must manually compa
 Validate that the minor differences do not modify the functionality of TrustedGRUB.
 
 1. The TrustedGRUB bootloader configuration file menu.lst is copied into /boot/grub by create_base_image.sh.  Verify that menu.lst is correct (both in this repository and in the cloak image):
-  1. The ```root``` command sets to (hd0,0) (1st hard-disk, 1st partition).
-  1. The ```kernel``` command sets to /vmlinuz, and that /vmlinuz points to the debian kernel image /boot/vmlinuz-3.2.0-4-amd64.
-  1. The ```kernel``` command enables SELinux (```selinux=1 security=selinux```).
-  1. The ```initrd``` command selects /initrd.img, which points to /boot/initrd.img-3.2.0-4-amd64 zzzz what is this?.
+  1. The `root` command sets to (hd0,0) (1st hard-disk, 1st partition).
+  1. The `kernel` command sets to /vmlinuz, and that /vmlinuz points to the debian kernel image /boot/vmlinuz-3.2.0-4-amd64.
+  1. The `kernel` command enables SELinux (```selinux=1 security=selinux```).
+  1. The `initrd` command selects /initrd.img, which points to /boot/initrd.img-3.2.0-4-amd64 zzzz what is this?.
 
 Note that the file "default" is not used by cloaks.  It is copied by build_tgrub.sh as a hold-over from the original version of build_tgrub.sh, because we wish to minimize changes to build_tgrub.sh.  Never-the-less, the auditor can verify that the file "default" from sourceforge.net is identical to:
 
