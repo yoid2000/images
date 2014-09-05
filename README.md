@@ -34,10 +34,10 @@ Projects from sourceforge are not signed, and so the auditor must manually compa
 1.  Download the archive TrustedGRUB-1.1.5.src.tar.gz from sourceforge.net/projects/trustedgrub/, and unpack it.
 
 1.  Within the downloaded archive is another archive with the same name (TrustedGRUB-1.1.5.src.tar.gz).  Check that this inner archive is identical to that in the repository:
-```https://github.com/Aircloak/cloak-automation/blob/master/TrustedGRUB/TrustedGRUB-1.1.5.src.tar.gz```
+`https://github.com/Aircloak/cloak-automation/blob/master/TrustedGRUB/TrustedGRUB-1.1.5.src.tar.gz`
 
 1.  Compare the build script build_tgrub.sh from sourceforge.net with that used by Aircloak in:
-```https://github.com/Aircloak/cloak-automation/blob/master/TrustedGRUB/build_tgrub.sh```
+`https://github.com/Aircloak/cloak-automation/blob/master/TrustedGRUB/build_tgrub.sh`
 Validate that the minor differences do not modify the functionality of TrustedGRUB.
 
 1. The TrustedGRUB bootloader configuration file menu.lst is copied into /boot/grub by create_base_image.sh.  Verify that menu.lst is correct (both in this repository and in the cloak image):
