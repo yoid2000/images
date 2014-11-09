@@ -1,3 +1,4 @@
+
 cloak-core
 ==========
 
@@ -24,6 +25,7 @@ cloak-core
     - [Tasks](#tasks)
     - [Plain inserts](#plain-inserts)
 - [Making changes to cloak-core](#making-changes)
+- [Auditor Guidelines](#auditor-guidelines)
 
 ----------------------
 
@@ -229,36 +231,37 @@ https://github.com/basho/webmachine/wiki/Resource-Functions documents the variou
 
 Likewise, https://github.com/basho/webmachine/wiki/Streamed-Body documents how the body of web requests (i.e. POST) are retrieved.  
 
-The file cloak_app.erl defines which modules are executed when various URLs are received (from nginx).  This file also contains the init routine that starts cloak-core.
+The file `cloak_app.erl` defines which modules are executed when various URLs are received (from nginx).  This file also contains the init routine that starts cloak-core.
 
-cloak-core generates log messages.  The auditor may ensure that no log messages leak user data.  cloak-core uses the lager framework for logging (see https://github.com/basho/lager).  cloak-core log messages are routed to syslog using the basho lager_syslog package (see https://github.com/basho/lager_syslog).  Its use is specified in rel/files/app.config.  app.config also disables crash and error logging to avoid leakage of user data through these channels.  Instead, errors are logged with a custom error handler, contained in cloak_error_logger_handler.erl.  A routine in this file also ensures that all other error loggers are disabled.  Macros for lager logging messages are defined in cloak.hrl.  Note that other Erlang-based components, erlattest, ipsecman, and manny-core, use the same logging framework.
+cloak-core generates log messages.  The auditor may ensure that no log messages leak user data.  cloak-core uses the lager framework for logging (see https://github.com/basho/lager).  cloak-core log messages are routed to syslog using the basho lager_syslog package (see https://github.com/basho/lager_syslog).  Its use is specified in `rel/files/app.config`.  `app.config` also disables crash and error logging to avoid leakage of user data through these channels.  Instead, errors are logged with a custom error handler, contained in `cloak_error_logger_handler.erl`.  A routine in this file also ensures that all other error loggers are disabled.  Macros for lager logging messages are defined in `cloak.hrl`.  Note that other Erlang-based components, erlattest, ipsecman, and manny-core, use the same logging framework.
 
-cloak-core reports performance metrics. The auditor may ensure that these metrics do not leak user data.  To mitigate this possibility, metrics are themselves anonymized.  The routines cloak_metrics:count() and cloak_metrics:histogram() result in metrics being externally reported via a connect to TCP port 2004.  The cloak_metrics software is in a separate repository at `Aircloak/cloak-metrics`, which runs within the cloak-core process.  The transmit call itself is at `Aircloak/cloak-metrics/cloak_metrics_tcp_transport.erl`.
+cloak-core reports performance metrics. The auditor may ensure that these metrics do not leak user data.  To mitigate this possibility, metrics are themselves anonymized.  The routines `cloak_metrics:count()` and `cloak_metrics:histogram()` result in metrics being externally reported via a connect to TCP port 2004.  The cloak_metrics software is in a separate repository at `Aircloak/cloak-metrics`, which runs within the cloak-core process.  The transmit call itself is at `Aircloak/cloak-metrics/cloak_metrics_tcp_transport.erl`.
 
 Processes within cloak-core (both in the same cloak and in other cloaks in the same cluster) have several methods of communications.  These include:
 
 * Erlang inter-process message communications using the `!` notation to send, and `receive` to receive.
 
-* RPC: Transmits are `rpc:cast`, `rpc:abcast`, `rpc:multicall`, etc., and `receive` to receive.
-
 * gen_server:  Transmits are `gen_server:cast`, `gen_server:call`, etc., with corresponding callbacks `handle_cast()`, `handle_call()`, to receive.
+
+* RPC: Transmits are `rpc:cast`, `rpc:abcast`, `rpc:multicall`, etc., and `receive` to receive.
 
 When communications with processes in other cloaks takes place, the messages are transmitted via TCP connections established over port 34423 (over IPSec).  (The Erlang-internal port mapping service epmd uses ports tcp:4369 and udp:4369 over IPSec.)
 
 A cloak-core erlang process also communicates with the sandbox, which is written in C, using a pipe.  The pipe is created with `open_port`.
 
-All data entering cloak-core from external sources (not including cloak-core instances in other cloaks) come in via nginx.   URLs composed of `/bulk_insert` and `/insert` are used to transmit user data to cloaks.  URLs composed of `/lookup` are used to transmit auxiliary (non-user) data to cloaks.  URLs composed of /task run tasks submit tasks, including queries, to cloaks.  Tasks can read user data (sandboxed one user at a time) and auxiliary data (not sandboxed).  All other URLs are used for various management and monitoring functions.  If user data is accidentally transmitted to a cloak using the `/lookup` URL, then this data may be exposed by a task.  The auditor may validate that user data accidentally transmitted to a cloak using any of the management/monitoring URLs cannot result in that user data exiting the cloak.
+All data entering cloak-core from external sources (not including cloak-core instances in other cloaks) come in via nginx.   URLs composed of `/bulk_insert` and `/insert` are used to transmit user data to cloaks.  URLs composed of `/lookup` are used to transmit auxiliary (non-user) data to cloaks.  URLs composed of `/task` run tasks submit tasks, including queries, to cloaks.  Tasks can read user data (sandboxed one user at a time) and auxiliary data (not sandboxed).  All other URLs are used for various management and monitoring functions.  If user data is accidentally transmitted to a cloak using the `/lookup` URL, then this data may be exposed by a task.  The auditor may validate that user data accidentally transmitted to a cloak using any of the management/monitoring URLs cannot result in that user data exiting the cloak.
 
-When the URL is composed of `/admin/ring`, the admin_resource module (admin_resource.erl) is used.  This is for managing the key/value ring (adding and remove nodes).  Only POST and DELETE HTTP methods are allowed (see allowed_methods).  POST is used to join ring, DELETE to leave ring or remove other node from ring.  The "ring_manager" software is used for this.  It communicates with rpc using port 34423, which is configured in rel/files/app.config.  No other communications interfaces are used by this module.
+When the URL is composed of `/admin/ring`, the admin_resource module (`admin_resource.erl`) is used.  This is for managing the key/value ring (adding and remove nodes).  Only POST and DELETE HTTP methods are allowed (see `allowed_methods`).  POST is used to join ring, DELETE to leave ring or remove other node from ring.  The `ring_manager` software is used for this.  It communicates with rpc using port 34423, which is configured in `rel/files/app.config`.  No other communications interfaces are used by this module.
 
-When the URL is composed of `/cloak/ping`, the cloak module (cloak.erl) is used.
+When the URL is composed of `/cloak/ping`, the cloak module (`cloak.erl`) is used.
 
-When the URL is composed of `/migrate`, the migration_resource module (migration_resource.erl) is used (POST method).
+When the URL is composed of `/migrate`, the migration_resource module (`migration_resource.erl`) is used (POST method).
 
-When the URL is composed of `/status/type`, where type is `ring_health`, `migration`, or `peers`, the status_resource module (status_resource.erl) is used.    This is GET only, and is called from manny-core, not nginx.
+When the URL is composed of `/status/type`, where type is `ring_health`, `migration`, or `peers`, the status_resource module (`status_resource.erl`) is used.    This is GET only, and is called from manny-core, not nginx.
 
-When the URL is composed of `/lookup/action`, where action can be `upload` or `remove`, the lookup_resource module (lookup_resource.erl) is used (POST method).  `resource_common:get_body(Req)` is where the POST body is grabbed.  This data goes into the migration functions, which ultimately result in a load into postgresql from analyst_tables.erl, using `pgsql_connection:extended_query`.
+When the URL is composed of `/lookup/action`, where action can be `upload` or `remove`, the lookup_resource module (`lookup_resource.erl`) is used (POST method).  `resource_common:get_body(Req)` is where the POST body is grabbed.  This data goes into the migration functions, which ultimately result in a load into postgresql from `analyst_tables.erl`, using `pgsql_connection:extended_query`.
 
 When the URL is composed of `/bulk_insert`, the bulk_insert_resource module is used.  Likewise, when the URL is composed of `/insert`, the insert_resource module is used (both POST only).  Since these POSTs contain user data, the auditor may inspect this code carefully to ensure that the user data is only transmitted to postgresql.  User data is inserted into postgresql using the `pgsql_connection:simple_query`, `pgsql_connection:batch_query`, and `pgsql_connection:extended_query` calls.
 
-When the URL is composed of `/task/run`, the task_resource module is used (method POST).  In task_coordinator.erl the task is transmitted to other cloaks (`gen_map_reduce:start_supervised`).  task_partition_runner.erl is where the actual task is run (data from sql, partition per user, run lua task).  task_coordinator.erl also collects the results, and calls anonymizer (anonymizer.erl).  job_runner.erl is where the communications with sandbox takes place (`open_port` opens port, `port_command` sends to port, `handle_info`).  The auditor may carefully inspect this code to ensure that user data passes through the anonymization function, and is not otherwise transmitted.
+When the URL is composed of `/task/run`, the task_resource module is used (method POST).  In `task_coordinator.erl` the task is transmitted to other cloaks (`gen_map_reduce:start_supervised`).  `task_partition_runner.erl` is where the actual task is run (data from sql, partition per user, run lua task).  `task_coordinator.erl` also collects the results, and calls anonymizer (`anonymizer.erl`).  `job_runner.erl` is where the communications with sandbox takes place (`open_port` opens port, `port_command` sends to port, `handle_info`).  The auditor may carefully inspect this code to ensure that user data passes through the anonymization function, and is not otherwise transmitted.
+
